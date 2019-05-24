@@ -97,7 +97,7 @@ namespace ExchangeRateWebApi.API
 
             if(!string.IsNullOrEmpty(errorMessage))
             {
-                throw new Exception(errorMessage);
+                throw new ArgumentException(errorMessage);
             }
         }
 

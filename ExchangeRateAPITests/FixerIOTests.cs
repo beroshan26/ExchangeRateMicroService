@@ -1,12 +1,7 @@
-﻿using ExchangeRateWebApi.API;
-using ExchangeRateWebApi.Cache;
-using ExchangeRateWebApi.Helpers;
-using ExchangeRateWebApi.Validators;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
 
 namespace ExchangeRateAPITests
 {
@@ -14,119 +9,58 @@ namespace ExchangeRateAPITests
     public class FixerIOTests
     {
         IConfiguration _configuration;
-        IFixerApi _fixerApi;
-        ICache _cache;
-        IApiConverter _converter;
-        IApiFormatter _formatter;
-        ICurrencyValidator _currencyValidator;
 
         [TestInitialize]
         public void TestSetup()
         {
             _configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-
-            _formatter = new ApiFormatter(_configuration);
-            _converter = new ApiConverter(_formatter);
-            _cache = new RedisCache(_configuration, _formatter, _converter);
-            _currencyValidator = new CurrencyValidator(_configuration);
-            _fixerApi = new FixerApi(_configuration, _cache, _formatter, _converter, _currencyValidator);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(Exception))]
-        public void NonAllowed_BaseCurrency_Throws_Exception()
+        public void FixerIo_Returns_OK_When_URI_Is_correct()
         {
-            _fixerApi.GetExchangeRate("ABC", "USD");
-        }
+            var url = GetFixerUrl();
 
-        [TestMethod]
-        [ExpectedException(typeof(AggregateException))]
-        public void NonAllowed_BaseCurrency_Throws_Exception_Async()
-        {
-            var task = Task.Run(()=> _fixerApi.GetExchangeRateAsync("ABC", "USD"));
-            var result = task.Result;
-        }
+            HttpResponseMessage response = null;
 
-        [TestMethod]
-        [ExpectedException(typeof(Exception))]
-        public void NonAllowed_TargetCurrency_Throws_Exception()
-        {
-            _fixerApi.GetExchangeRate("USD", "ABC");
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(AggregateException))]
-        public void NonAllowed_TargetCurrency_Throws_Exception_Async()
-        {
-            var task = Task.Run(() => _fixerApi.GetExchangeRateAsync("ABC", "USD"));
-            var result = task.Result;
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(Exception))]
-        public void Null_Currencies_Throws_Exception()
-        {
-            _fixerApi.GetExchangeRate(null, null);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(AggregateException))]
-        public void Null_Currencies_Throws_Exception_Async()
-        {
-            var task = Task.Run(() => _fixerApi.GetExchangeRateAsync(null, null));
-            var result = task.Result;
-        }
-
-        [TestMethod]        
-        public void Base_Currency_Not_EUR_ReturnsRate()
-        {
-            var rate = _fixerApi.GetExchangeRate("USD", "EUR");
-            Assert.AreNotEqual(rate, null);
-        }
-
-        [TestMethod]
-        public void Same_Base_And_Target_Returns_1()
-        {
-            Assert.AreEqual(_fixerApi.GetExchangeRate("EUR", "EUR").CcyExchangeRate, 1);
-        }
-
-        [TestMethod]
-        public void Allowed_Currency_Returns_Rates()
-        {
-            var rate = _fixerApi.GetExchangeRate("EUR", "USD");
-
-            Assert.AreNotEqual(rate, null);
-        }
-
-        [TestMethod]
-        public void Allowed_CCY_Combinations_Returns_Rate()
-        {
-            var allowedCurrencies = _configuration["AppSettings:AllowedCurrencies"].Split(',');           
-            foreach (var item1 in allowedCurrencies)
-            {                var ccy1 = item1.Trim();
-                foreach (var item2 in allowedCurrencies)
-                {
-                    var ccy2 = item2.Trim();
-                    var rate = _fixerApi.GetExchangeRate(ccy1, ccy2);                   
-                    Assert.AreNotEqual(rate, null);
-                }
-            }
-        }
-
-        [TestMethod]
-        public void Allowed_CCY_Combinations_Returns_Rate_Asynchronous()
-        {           
-            var allowedCurrencies = _configuration["AppSettings:AllowedCurrencies"].Split(',').ToList();                   
-            foreach (var item1 in allowedCurrencies)
+            using (var client = new HttpClient())
             {
-                var ccy1 = item1.Trim();
-                allowedCurrencies.ForEach(async a =>
-                {
-                    var ccy2 = a.Trim();
-                    var rate = await _fixerApi.GetExchangeRateAsync(ccy1, ccy2);                    
-                    Assert.AreNotEqual(rate, null);
-                });                               
+                response = client.GetAsync(url).Result;
+                response.EnsureSuccessStatusCode();
             }
+
+            Assert.IsTrue(response.StatusCode == HttpStatusCode.OK);
+        }
+
+        [TestMethod]
+        public void FixerIo_Returns_Error_When_URI_Is_Incorrect()
+        {
+            var url = GetFakeFixerUrl();
+
+            HttpResponseMessage response = null;
+
+            using (var client = new HttpClient())
+            {
+                response = client.GetAsync(url).Result;
+                response.EnsureSuccessStatusCode();
+            }
+
+            Assert.IsTrue(response.Content.ReadAsStringAsync().Result.Contains("invalid_access_key"));
+
+        }
+
+        public string GetFixerUrl()
+        {
+            //sample url-http://data.fixer.io/api/latest?access_key=API_KEY//&base=USD&symbols=GBP
+            return $"{_configuration["AppSettings:FixerUri"]}{"latest"}?access_key={_configuration["AppSettings:FixerApiKey"]}&base=" +
+                $"{_configuration["AppSettings:AllowedApiBaseCcy"]}&symbols={_configuration["AppSettings:AllowedCurrencies"]}";
+        }
+
+        public string GetFakeFixerUrl()
+        {
+            //sample url-http://data.fixer.io/api/latest?access_key=API_KEY//&base=USD&symbols=GBP
+            return $"{_configuration["AppSettings:FixerUri"]}{"latest"}?access_key=invalidaccesskey&base=" +
+                $"{_configuration["AppSettings:AllowedApiBaseCcy"]}&symbols={_configuration["AppSettings:AllowedCurrencies"]}";
         }
     }
 }
