@@ -57,7 +57,7 @@ namespace ExchangeRateWebApi.Cache
             }
             if (redisClient.Get<string>(key) == null)
             {
-                redisClient.Set(key, itemToCache, TimeSpan.FromDays(1));
+                redisClient.Set(key, itemToCache, TimeSpan.FromHours(1));
             }
         }
 

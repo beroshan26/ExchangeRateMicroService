@@ -31,7 +31,7 @@ namespace ExchangeRateWebApi
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ICache _cache, IFixerApi _fixerApi)
         {
             if (env.IsDevelopment())
             {
@@ -43,6 +43,8 @@ namespace ExchangeRateWebApi
             }            
             app.UseHttpsRedirection();
             app.UseMvc();
+            _cache.ClearCache();
+            _fixerApi.GetExchangeRate(Configuration["AppSettings:AllowedApiBaseCcy"], Configuration["AppSettings:AllowedCurrencies"]);
         }
     }
 }

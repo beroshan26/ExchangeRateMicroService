@@ -163,8 +163,6 @@ namespace ExchangeRateWebApi.API
                 _cache.AddToCache(exchRateResponse);
             }
         }
-
-        
         
         private string GetFixerUrl()
         {
