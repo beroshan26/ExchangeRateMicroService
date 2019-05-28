@@ -30,7 +30,7 @@ docker swarm init
 
 docker service create --publish 5000:5000 --name exchangerateapi exchangerateapi-img
 
-docker service scale ExchangeRateApi=5
+docker service scale exchangerateapi=5
 
 ================================================================================================
 
