@@ -20,15 +20,15 @@ Downloading redis cache
 Running Docker Services (Ensure docker for windows/other platform is installed)
 Use the following commands to run mutliple istances for load balancing
 
-docker build -t ExchangeRateApi-img -f ExchangeRateApi.dockerfile .
+docker build -t exchangerateapi-img -f exchangerateapi.dockerfile .
 
 To run one instance
-docker run --name ExchangeRateApi -d -p 5000:5000 -t ExchangeRateApi-img
+docker run --name exchangerateapi -d -p 5000:5000 -t exchangerateapi-img
 
 To run multiple, use the scale number of your choice
 docker swarm init
 
-docker service create --publish 5000:5000 --name ExchangeRateApi ExchangeRateApi-img
+docker service create --publish 5000:5000 --name exchangerateapi exchangerateapi-img
 
 docker service scale ExchangeRateApi=5
 
